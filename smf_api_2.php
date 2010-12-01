@@ -135,8 +135,8 @@ function smf_clear_user_info()
 {
 	global $smf_language, $smf_settings, $smf_user_info;
 
-  $smf_user_info['ID_MEMBER'] = 0;
-  $smf_user_info['id'] = &$smf_user_info['ID_MEMBER'];
+  $smf_user_info['id_member'] = 0;
+  $smf_user_info['id'] = &$smf_user_info['id_member'];
   $smf_user_info['username'] = "";
   $smf_user_info['name'] = "";
   $smf_user_info['email'] = "";
@@ -158,9 +158,9 @@ function smf_api_get_user_membername($id)
 			return $username;
 
 		$result = smf_db_query("
-				SELECT memberName
+				SELECT member_name
 				FROM {$smf_db_prefix}members
-				WHERE ID_MEMBER = '" . (int) $id . "'
+				WHERE id_member = '" . (int) $id . "'
 				LIMIT 1", __FILE__, __LINE__);
 			list ($username) = mysql_fetch_row($result);
 			mysql_free_result($result);
@@ -182,9 +182,9 @@ function smf_api_get_user_name($id)
 			return $username;
 
 		$result = smf_db_query("
-				SELECT realName
+				SELECT real_name
 				FROM {$smf_db_prefix}members
-				WHERE ID_MEMBER = '" . (int) $id . "'
+				WHERE id_member = '" . (int) $id . "'
 				LIMIT 1", __FILE__, __LINE__);
 			list ($username) = mysql_fetch_row($result);
 			mysql_free_result($result);
@@ -209,9 +209,9 @@ function smf_api_get_user_id($username)
 		$username = smf_api_charset($username);
 
 		$result = smf_db_query("
-			SELECT ID_MEMBER
+			SELECT id_member
 			FROM {$smf_db_prefix}members
-			WHERE memberName = '$username'
+			WHERE member_name = '$username'
 			LIMIT 1", __FILE__, __LINE__);
 		list ($id) = mysql_fetch_row($result);
 		mysql_free_result($result);
@@ -221,9 +221,9 @@ function smf_api_get_user_id($username)
         return 0;
       }
       $result = smf_db_query("
-  			SELECT ID_MEMBER
-  			FROM {$smf_db_prefix}members
-  			WHERE emailAddress = '$email'
+				SELECT id_member
+				FROM {$smf_db_prefix}members
+				WHERE email_address = '$email'
   			LIMIT 1", __FILE__, __LINE__);
   		list ($id) = mysql_fetch_row($result);
   		mysql_free_result($result);
@@ -244,9 +244,9 @@ function smf_api_check_password($id = null, $password = null, $is_username = fal
 		return;
 
 	$request = smf_db_query("
-		SELECT passwd, memberName, is_activated
+		SELECT passwd, member_name, is_activated
 		FROM {$smf_db_prefix}members
-		WHERE " . ($is_username ? 'memberName' : 'ID_MEMBER') . " = '$id'
+		WHERE " . ($is_username ? 'member_name' : 'id_member') . " = '$id'
 		LIMIT 1", __FILE__, __LINE__);
 	list ($pass, $user, $active) = mysql_fetch_row($request);
 	mysql_free_result($request);
@@ -271,9 +271,9 @@ function smf_api_set_login_cookie($cookie_length, $id, $password = '', $encrypte
 		$username = smf_api_charset($id);
 
 		$result = smf_db_query("
-			SELECT ID_MEMBER
+			SELECT id_member
 			FROM {$smf_db_prefix}members
-			WHERE memberName = '$username'
+			WHERE member_name = '$username'
 			LIMIT 1", __FILE__, __LINE__);
 		list ($id) = mysql_fetch_row($result);
 		mysql_free_result($result);
@@ -284,10 +284,10 @@ function smf_api_set_login_cookie($cookie_length, $id, $password = '', $encrypte
       if (strpos($email, "@") !== false) {
         if (smf_is_valid_email($email)) {
           $result = smf_db_query("
-      			SELECT ID_MEMBER
-      			FROM {$smf_db_prefix}members
-      			WHERE emailAddress = '$email'
-      			LIMIT 1", __FILE__, __LINE__);
+						SELECT id_member
+						FROM {$smf_db_prefix}members
+						WHERE email_address = '$email'
+						LIMIT 1", __FILE__, __LINE__);
       		list ($id) = mysql_fetch_row($result);
       		mysql_free_result($result);
         }
@@ -313,9 +313,9 @@ function smf_api_set_login_cookie($cookie_length, $id, $password = '', $encrypte
 				return false;
 
 			$result = smf_db_query("
-				SELECT memberName
+				SELECT member_name
 				FROM {$smf_db_prefix}members
-				WHERE ID_MEMBER = '" . (int) $id . "'
+				WHERE id_member = '" . (int) $id . "'
 				LIMIT 1", __FILE__, __LINE__);
 			list ($username) = mysql_fetch_row($result);
 			mysql_free_result($result);
@@ -333,19 +333,19 @@ function smf_api_set_login_cookie($cookie_length, $id, $password = '', $encrypte
 		}
 	}
   if (empty($cookie_length))
-    $cookieTime = 60 * $smf_settings['cookieTime'];
+    $cookieTime = 60 * $smf_settings['cookie_time'];
   else
     $cookieTime = 60 * $cookie_length;
 	// Cookie set.  A session too, just incase.
-	set_login_cookie($cookieTime, $ID_MEMBER, sha1($smf_user_info['passwd'] . $smf_user_info['passwordSalt']));
+	set_login_cookie($cookieTime, $ID_MEMBER, sha1($smf_user_info['passwd'] . $smf_user_info['password_salt']));
 
 	// Reset the login threshold.
 	if (isset($_SESSION['failed_login']))
 		unset($_SESSION['failed_login']);
 
 	$smf_user_info['is_guest'] = false;
-	$smf_user_info['additionalGroups'] = explode(',', $smf_user_info['additionalGroups']);
-	$smf_user_info['is_admin'] = $smf_user_info['ID_GROUP'] == 1 || in_array(1, $smf_user_info['additionalGroups']);
+	$smf_user_info['additional_groups'] = explode(',', $smf_user_info['additional_groups']);
+	$smf_user_info['is_admin'] = $smf_user_info['id_group'] == 1 || in_array(1, $smf_user_info['additional_groups']);
 
 	// Are you banned? Go ahead! SMF will catch you anyway!
 	//is_not_banned(true);
@@ -373,7 +373,6 @@ function smf_api_authenticate_user()
 	if (isset($_COOKIE[$smf_settings['cookiename']]))
 	{
 		$_COOKIE[$smf_settings['cookiename']] = stripslashes($_COOKIE[$smf_settings['cookiename']]);
-  
 		// Fix a security hole in PHP <= 4.3.9.
 		if (preg_match('~^a:[34]:\{i:0;(i:\d{1,6}|s:[1-8]:"\d{1,8}");i:1;s:(0|40):"([a-fA-F0-9]{40})?";i:2;[id]:\d{1,14};(i:3;i:\d;)?\}$~', $_COOKIE[$smf_settings['cookiename']]) == 1)
 		{
@@ -407,12 +406,12 @@ function smf_api_authenticate_user()
 
 			// SHA-1 passwords should be 40 characters long.
 			if (strlen($password) == 40)
-				$check = sha1($smf_user_info['passwd'] . $smf_user_info['passwordSalt']) == $password;
+				$check = sha1($smf_user_info['passwd'] . $smf_user_info['password_salt']) == $password;
 			else
 				$check = false;
 
 			// Wrong password or not activated.
-			$ID_MEMBER = $check && ($smf_user_info['is_activated'] == 1 || $smf_user_info['is_activated'] == 11) ? $smf_user_info['ID_MEMBER'] : 0;
+			$ID_MEMBER = $check && ($smf_user_info['is_activated'] == 1 || $smf_user_info['is_activated'] == 11) ? $smf_user_info['id_member'] : 0;
 		}
 		else
 			$ID_MEMBER = 0;
@@ -423,37 +422,37 @@ function smf_api_authenticate_user()
 		$smf_user_info = array('groups' => array(-1));
 	else
 	{
-		if (empty($smf_user_info['additionalGroups']))
-			$smf_user_info['groups'] = array($smf_user_info['ID_GROUP'], $smf_user_info['ID_POST_GROUP']);
+		if (empty($smf_user_info['additional_groups']))
+			$smf_user_info['groups'] = array($smf_user_info['id_group'], $smf_user_info['id_post_group']);
 		else
 			$smf_user_info['groups'] = array_merge(
-				array($smf_user_info['ID_GROUP'], $smf_user_info['ID_POST_GROUP']),
-				explode(',', $smf_user_info['additionalGroups'])
+				array($smf_user_info['id_group'], $smf_user_info['id_post_group']),
+				explode(',', $smf_user_info['additional_groups'])
 			);
 	}
 
-	$smf_user_info['id'] = &$smf_user_info['ID_MEMBER'];
-	$smf_user_info['username'] = &$smf_user_info['memberName'];
-	$smf_user_info['name'] = &$smf_user_info['realName'];
-	$smf_user_info['email'] = &$smf_user_info['emailAddress'];
-	$smf_user_info['messages'] = &$smf_user_info['instantMessages'];
-	$smf_user_info['unread_messages'] = &$smf_user_info['unreadMessages'];
-	$smf_user_info['language'] = empty($smf_user_info['lngfile']) || empty($smf_settings['userLanguage']) ? $smf_settings['language'] : $smf_user_info['lngfile'];
+	$smf_user_info['id'] = &$smf_user_info['id_member'];
+	$smf_user_info['username'] = &$smf_user_info['member_name'];
+	$smf_user_info['name'] = &$smf_user_info['real_name'];
+	$smf_user_info['email'] = &$smf_user_info['email_address'];
+	$smf_user_info['messages'] = &$smf_user_info['instant_messages'];
+	$smf_user_info['unread_messages'] = &$smf_user_info['unread_messages'];
+	$smf_user_info['language'] = empty($smf_user_info['lngfile']) || empty($smf_settings['user_language']) ? $smf_settings['language'] : $smf_user_info['lngfile'];
 	$smf_user_info['is_guest'] = $ID_MEMBER == 0;
 	$smf_user_info['is_admin'] = in_array(1, $smf_user_info['groups']);
 	
   if ($smf_user_info['is_guest'])
-		$smf_user_info['query_see_board'] = 'FIND_IN_SET(-1, b.memberGroups)';
+		$smf_user_info['query_see_board'] = 'FIND_IN_SET(-1, b.member_groups)';
 	// Administrators can see all boards.
 	elseif ($smf_user_info['is_admin'])
 		$smf_user_info['query_see_board'] = '1';
 	// Registered user.... just the groups in $smf_user_info['groups'].
 	else
-		$smf_user_info['query_see_board'] = '(FIND_IN_SET(' . implode(', b.memberGroups) OR FIND_IN_SET(', $smf_user_info['groups']) . ', b.memberGroups))';
+		$smf_user_info['query_see_board'] = '(FIND_IN_SET(' . implode(', b.member_groups) OR FIND_IN_SET(', $smf_user_info['groups']) . ', b.member_groups))';
 
 	// This might be set to "forum default"...
-	if (empty($smf_user_info['timeFormat']))
-		$smf_user_info['timeFormat'] = $smf_settings['time_format'];
+	if (empty($smf_user_info['time_format']))
+		$smf_user_info['time_format'] = $smf_settings['time_format'];
 
 	// Just in case it wasn't determined yet whether UTF-8 is enabled.
 	if (!isset($smf_settings['utf8']))
@@ -495,7 +494,7 @@ function smf_api_get_user($username, $passwd)
 	$request = smf_db_query("
 		SELECT *
 		FROM {$smf_db_prefix}members
-		WHERE memberName = '$username'
+		WHERE member_name = '$username'
 		LIMIT 1", __FILE__, __LINE__);
 
 	if (mysql_num_rows($request) != 0) {
@@ -511,12 +510,12 @@ function smf_api_get_user($username, $passwd)
         $result = smf_db_query("
           SELECT *
           FROM {$smf_db_prefix}members
-          WHERE emailAddress = '$email'
+          WHERE email_address = '$email'
           LIMIT 1", __FILE__, __LINE__);
 
         if (mysql_num_rows($result) != 0) {
           $smf_user_info += mysql_fetch_assoc($result);
-          $username = $smf_user_info['memberName'];
+          $username = $smf_user_info['member_name'];
           mysql_free_result($result);
           $email_found = true;
         }  
@@ -537,26 +536,26 @@ function smf_api_get_user($username, $passwd)
   }
   else {
     $smf_user_info['passwd'] = "";
-    $smf_user_info['passwordSalt'] = "";
+    $smf_user_info['password_salt'] = "";
   }
   //$smf_user_info['passwd'] = $sha1_passwd;
 	//$smf_user_info['passwordSalt'] = substr(md5(rand()), 0, 4);
 
  	$smf_user_info['is_guest'] = true;
 	// A few things to make life easier...
-	$smf_user_info['id'] = &$smf_user_info['ID_MEMBER'];
-	$smf_user_info['username'] = &$smf_user_info['memberName'];
-	$smf_user_info['name'] = &$smf_user_info['realName'];
-	$smf_user_info['email'] = &$smf_user_info['emailAddress'];
-	$smf_user_info['messages'] = &$smf_user_info['instantMessages'];
-	$smf_user_info['unread_messages'] = &$smf_user_info['unreadMessages'];
-	$smf_user_info['language'] = empty($smf_user_info['lngfile']) || empty($smf_settings['userLanguage']) ? $smf_settings['language'] : $smf_user_info['lngfile'];
+	$smf_user_info['id'] = &$smf_user_info['id_member'];
+	$smf_user_info['username'] = &$smf_user_info['member_name'];
+	$smf_user_info['name'] = &$smf_user_info['real_name'];
+	$smf_user_info['email'] = &$smf_user_info['email_address'];
+	$smf_user_info['messages'] = &$smf_user_info['instant_messages'];
+	$smf_user_info['unread_messages'] = &$smf_user_info['unread_messages'];
+	$smf_user_info['language'] = empty($smf_user_info['lngfile']) || empty($smf_settings['user_language']) ? $smf_settings['language'] : $smf_user_info['lngfile'];
 	$smf_user_info['is_admin'] = in_array(1, $smf_user_info['groups']);
  
-	$smf_user_info['query_see_board'] = 'FIND_IN_SET(-1, b.memberGroups)';
+	$smf_user_info['query_see_board'] = 'FIND_IN_SET(-1, b.member_groups)';
 	// This might be set to "forum default"...
-	if (empty($smf_user_info['timeFormat']))
-		$smf_user_info['timeFormat'] = $smf_settings['time_format'];
+	if (empty($smf_user_info['time_format']))
+		$smf_user_info['time_format'] = $smf_settings['time_format'];
 	// Just in case it wasn't determined yet whether UTF-8 is enabled.
 	if (!isset($smf_settings['utf8']))
 		//$smf_settings['utf8'] = (empty($smf_settings['global_character_set']) ? $smf_txt['lang_character_set'] : $smf_settings['global_character_set']) === 'UTF-8';
@@ -587,25 +586,25 @@ function smf_api_recent_posts($num_recent = 8, $exclude_boards = null, $output_t
 
   smf_api_authenticate_user();
 
-  $ID_MEMBER = $smf_user_info['ID_MEMBER'];
+  $ID_MEMBER = $smf_user_info['id_member'];
 
 	// Find all the posts.  Newer ones will have higher IDs.
 
 	$request = smf_db_query("
 		SELECT
-			m.posterTime, m.subject, m.ID_TOPIC, m.ID_MEMBER, m.ID_MSG, m.ID_BOARD, b.name AS bName,
-			IFNULL(mem.realName, m.posterName) AS posterName, " . ($smf_user_info['is_guest'] ? '1 AS isRead, 0 AS new_from' : '
-			IFNULL(lt.ID_MSG, IFNULL(lmr.ID_MSG, 0)) >= m.ID_MSG_MODIFIED AS isRead,
-			IFNULL(lt.ID_MSG, IFNULL(lmr.ID_MSG, -1)) + 1 AS new_from') . ", LEFT(m.body, 384) AS body, m.smileysEnabled
+			m.poster_time, m.subject, m.id_topic, m.id_member, m.id_msg, m.id_board, b.name AS bName,
+			IFNULL(mem.real_name, m.poster_name) AS poster_name, " . ($smf_user_info['is_guest'] ? '1 AS is_read, 0 AS new_from' : '
+			IFNULL(lt.id_msg, IFNULL(lmr.id_msg, 0)) >= m.id_msg_modified AS is_read,
+			IFNULL(lt.id_msg, IFNULL(lmr.id_msg, -1)) + 1 AS new_from') . ", LEFT(m.body, 384) AS body, m.smileys_enabled
 		FROM ({$smf_db_prefix}messages AS m, {$smf_db_prefix}boards AS b)
-			LEFT JOIN {$smf_db_prefix}members AS mem ON (mem.ID_MEMBER = m.ID_MEMBER)" . (!$smf_user_info['is_guest'] ? "
-			LEFT JOIN {$smf_db_prefix}log_topics AS lt ON (lt.ID_TOPIC = m.ID_TOPIC AND lt.ID_MEMBER = $ID_MEMBER)
-			LEFT JOIN {$smf_db_prefix}log_mark_read AS lmr ON (lmr.ID_BOARD = m.ID_BOARD AND lmr.ID_MEMBER = $ID_MEMBER)" : '') . "
-		WHERE m.ID_MSG >= " . ($smf_settings['maxMsgID'] - 25 * min($num_recent, 5)) . "
-			AND b.ID_BOARD = m.ID_BOARD" . (empty($exclude_boards) ? '' : "
-			AND b.ID_BOARD NOT IN (" . implode(', ', $exclude_boards) . ")") . "
+			LEFT JOIN {$smf_db_prefix}members AS mem ON (mem.id_member = m.id_member)" . (!$smf_user_info['is_guest'] ? "
+			LEFT JOIN {$smf_db_prefix}log_topics AS lt ON (lt.id_topic = m.id_topic AND lt.id_member = $ID_MEMBER)
+			LEFT JOIN {$smf_db_prefix}log_mark_read AS lmr ON (lmr.id_board = m.id_board AND lmr.id_member = $ID_MEMBER)" : '') . "
+		WHERE m.id_msg >= " . ($smf_settings['max_msg_id'] - 25 * min($num_recent, 5)) . "
+			AND b.id_board = m.id_board" . (empty($exclude_boards) ? '' : "
+			AND b.id_board NOT IN (" . implode(', ', $exclude_boards) . ")") . "
       AND $smf_user_info[query_see_board]
-		ORDER BY m.ID_MSG DESC
+		ORDER BY m.id_msg DESC
 		LIMIT $num_recent", __FILE__, __LINE__);
 
 	if ($request === false)
@@ -628,26 +627,26 @@ function smf_api_recent_posts($num_recent = 8, $exclude_boards = null, $output_t
 		// Build the array.
 		$posts[] = array(
 			'board' => array(
-				'id' => $row['ID_BOARD'],
+				'id' => $row['id_board'],
 				'name' => $row['bName'],
-				'href' => $scripturl . '?board=' . $row['ID_BOARD'] . '.0',
-				'link' => '<a href="' . $scripturl . '?board=' . $row['ID_BOARD'] . '.0">' . $row['bName'] . '</a>'
+				'href' => $scripturl . '?board=' . $row['id_board'] . '.0',
+				'link' => '<a href="' . $scripturl . '?board=' . $row['id_board'] . '.0">' . $row['bName'] . '</a>'
 			),
-			'topic' => $row['ID_TOPIC'],
+			'topic' => $row['id_topic'],
 			'poster' => array(
-				'id' => $row['ID_MEMBER'],
-				'name' => $row['posterName'],
-				'href' => empty($row['ID_MEMBER']) ? '' : $scripturl . '?action=profile;u=' . $row['ID_MEMBER'],
-				'link' => empty($row['ID_MEMBER']) ? $row['posterName'] : '<a href="' . $scripturl . '?action=profile;u=' . $row['ID_MEMBER'] . '">' . $row['posterName'] . '</a>'
+				'id' => $row['id_member'],
+				'name' => $row['poster_name'],
+				'href' => empty($row['id_member']) ? '' : $scripturl . '?action=profile;u=' . $row['id_member'],
+				'link' => empty($row['id_member']) ? $row['poster_name'] : '<a href="' . $scripturl . '?action=profile;u=' . $row['id_member'] . '">' . $row['poster_name'] . '</a>'
 			),
 			'subject' => $row['subject'],
 			'short_subject' => smf_shorten_subject($row['subject'], 50), //$row['subject'], //shorten_subject($row['subject'], 25),
 			'preview' => $row['body'],
-			'time' => smf_format_time($row['posterTime']),//smf_format_time($row['posterTime']), //timeformat($row['posterTime']),
-			'timestamp' => smf_forum_time(true, $row['posterTime']),//$row['posterTime'], //forum_time(true, $row['posterTime']),
-			'href' => $scripturl . '?topic=' . $row['ID_TOPIC'] . '.msg' . $row['ID_MSG'] . ';topicseen#new',
-			'link' => '<a href="' . $scripturl . '?topic=' . $row['ID_TOPIC'] . '.msg' . $row['ID_MSG'] . '#msg' . $row['ID_MSG'] . '">' . $row['subject'] . '</a>',
-			'new' => !empty($row['isRead']),
+			'time' => smf_format_time($row['poster_time']),//smf_format_time($row['posterTime']), //timeformat($row['posterTime']),
+			'timestamp' => smf_forum_time(true, $row['poster_time']),//$row['posterTime'], //forum_time(true, $row['posterTime']),
+			'href' => $scripturl . '?topic=' . $row['id_topic'] . '.msg' . $row['id_msg'] . ';topicseen#new',
+			'link' => '<a href="' . $scripturl . '?topic=' . $row['id_topic'] . '.msg' . $row['id_msg'] . '#msg' . $row['id_msg'] . '">' . $row['subject'] . '</a>',
+			'new' => !empty($row['is_read']),
 			'new_from' => $row['new_from'],
 		);
 	}
@@ -730,7 +729,7 @@ function smf_api_recent_topics($num_recent = 8, $exclude_boards = null, $output_
 
   smf_api_authenticate_user();
 
-  $ID_MEMBER = $smf_user_info['ID_MEMBER'];
+  $ID_MEMBER = $smf_user_info['id_member'];
 
 	$stable_icons = array('xx', 'thumbup', 'thumbdown', 'exclamation', 'question', 'lamp', 'smiley', 'angry', 'cheesy', 'grin', 'sad', 'wink', 'moved', 'recycled', 'wireless');
 	$icon_sources = array();
@@ -740,21 +739,21 @@ function smf_api_recent_topics($num_recent = 8, $exclude_boards = null, $output_
 	// Find all the posts in distinct topics.  Newer ones will have higher IDs.
 	$request = smf_db_query("
 		SELECT
-			m.posterTime, ms.subject, m.ID_TOPIC, m.ID_MEMBER, m.ID_MSG, b.ID_BOARD, b.name AS bName,
-			IFNULL(mem.realName, m.posterName) AS posterName, " . ($smf_user_info['is_guest'] ? '1 AS isRead, 0 AS new_from' : '
-			IFNULL(lt.ID_MSG, IFNULL(lmr.ID_MSG, 0)) >= m.ID_MSG_MODIFIED AS isRead,
-			IFNULL(lt.ID_MSG, IFNULL(lmr.ID_MSG, -1)) + 1 AS new_from') . ", LEFT(m.body, 384) AS body, m.smileysEnabled, m.icon
+			m.poster_time, ms.subject, m.id_topic, m.id_member, m.id_msg, b.id_board, b.name AS bName,
+			IFNULL(mem.real_name, m.poster_name) AS poster_name, " . ($smf_user_info['is_guest'] ? '1 AS is_read, 0 AS new_from' : '
+			IFNULL(lt.id_msg, IFNULL(lmr.id_msg, 0)) >= m.id_msg_modified AS is_read,
+			IFNULL(lt.id_msg, IFNULL(lmr.id_msg, -1)) + 1 AS new_from') . ", LEFT(m.body, 384) AS body, m.smileys_enabled, m.icon
 		FROM ({$smf_db_prefix}messages AS m, {$smf_db_prefix}topics AS t, {$smf_db_prefix}boards AS b, {$smf_db_prefix}messages AS ms)
-			LEFT JOIN {$smf_db_prefix}members AS mem ON (mem.ID_MEMBER = m.ID_MEMBER)" . (!$smf_user_info['is_guest'] ? "
-			LEFT JOIN {$smf_db_prefix}log_topics AS lt ON (lt.ID_TOPIC = t.ID_TOPIC AND lt.ID_MEMBER = $ID_MEMBER)
-			LEFT JOIN {$smf_db_prefix}log_mark_read AS lmr ON (lmr.ID_BOARD = b.ID_BOARD AND lmr.ID_MEMBER = $ID_MEMBER)" : '') . "
-		WHERE t.ID_LAST_MSG >= " . ($smf_settings['maxMsgID'] - 35 * min($num_recent, 5)) . "
-			AND t.ID_LAST_MSG = m.ID_MSG
-			AND b.ID_BOARD = t.ID_BOARD" . (empty($exclude_boards) ? '' : "
-			AND b.ID_BOARD NOT IN (" . implode(', ', $exclude_boards) . ")") . "
+			LEFT JOIN {$smf_db_prefix}members AS mem ON (mem.id_member = m.id_member)" . (!$smf_user_info['is_guest'] ? "
+			LEFT JOIN {$smf_db_prefix}log_topics AS lt ON (lt.id_topic = t.id_topic AND lt.id_member = $ID_MEMBER)
+			LEFT JOIN {$smf_db_prefix}log_mark_read AS lmr ON (lmr.id_board = b.id_board AND lmr.id_member = $ID_MEMBER)" : '') . "
+		WHERE t.id_last_msg >= " . ($smf_settings['maxMsgID'] - 35 * min($num_recent, 5)) . "
+			AND t.id_last_msg = m.id_msg
+			AND b.id_board = t.id_board" . (empty($exclude_boards) ? '' : "
+			AND b.id_board NOT IN (" . implode(', ', $exclude_boards) . ")") . "
 			AND $smf_user_info[query_see_board]
-			AND ms.ID_MSG = t.ID_FIRST_MSG
-		ORDER BY t.ID_LAST_MSG DESC
+			AND ms.id_msg = t.id_first_msg
+		ORDER BY t.id_last_msg DESC
 		LIMIT $num_recent", __FILE__, __LINE__);
 
   if ($request === false)
@@ -780,26 +779,26 @@ function smf_api_recent_topics($num_recent = 8, $exclude_boards = null, $output_
 		// Build the array.
 		$posts[] = array(
 			'board' => array(
-				'id' => $row['ID_BOARD'],
+				'id' => $row['id_board'],
 				'name' => $row['bName'],
-				'href' => $scripturl . '?board=' . $row['ID_BOARD'] . '.0',
-				'link' => '<a href="' . $scripturl . '?board=' . $row['ID_BOARD'] . '.0">' . $row['bName'] . '</a>'
+				'href' => $scripturl . '?board=' . $row['id_board'] . '.0',
+				'link' => '<a href="' . $scripturl . '?board=' . $row['id_board'] . '.0">' . $row['bName'] . '</a>'
 			),
-			'topic' => $row['ID_TOPIC'],
+			'topic' => $row['id_topic'],
 			'poster' => array(
-				'id' => $row['ID_MEMBER'],
-				'name' => $row['posterName'],
-				'href' => empty($row['ID_MEMBER']) ? '' : $scripturl . '?action=profile;u=' . $row['ID_MEMBER'],
-				'link' => empty($row['ID_MEMBER']) ? $row['posterName'] : '<a href="' . $scripturl . '?action=profile;u=' . $row['ID_MEMBER'] . '">' . $row['posterName'] . '</a>'
+				'id' => $row['id_member'],
+				'name' => $row['poster_name'],
+				'href' => empty($row['id_member']) ? '' : $scripturl . '?action=profile;u=' . $row['id_member'],
+				'link' => empty($row['id_member']) ? $row['poster_name'] : '<a href="' . $scripturl . '?action=profile;u=' . $row['id_member'] . '">' . $row['poster_name'] . '</a>'
 			),
 			'subject' => $row['subject'],
 			'short_subject' => smf_shorten_subject($row['subject'], 50),
 			'preview' => $row['body'],
-			'time' => smf_format_time($row['posterTime']),//smf_format_time($row['posterTime']), //timeformat($row['posterTime']),
-			'timestamp' => smf_forum_time(true, $row['posterTime']),//$row['posterTime'], //forum_time(true, $row['posterTime']),
-			'href' => $scripturl . '?topic=' . $row['ID_TOPIC'] . '.msg' . $row['ID_MSG'] . ';topicseen#new',
-			'link' => '<a href="' . $scripturl . '?topic=' . $row['ID_TOPIC'] . '.msg' . $row['ID_MSG'] . '#new">' . $row['subject'] . '</a>',
-			'new' => !empty($row['isRead']),
+			'time' => smf_format_time($row['poster_time']),//smf_format_time($row['posterTime']), //timeformat($row['posterTime']),
+			'timestamp' => smf_forum_time(true, $row['poster_time']),//$row['posterTime'], //forum_time(true, $row['posterTime']),
+			'href' => $scripturl . '?topic=' . $row['id_topic'] . '.msg' . $row['id_msg'] . ';topicseen#new',
+			'link' => '<a href="' . $scripturl . '?topic=' . $row['id_topic'] . '.msg' . $row['id_msg'] . '#new">' . $row['subject'] . '</a>',
+			'new' => !empty($row['is_read']),
 			'new_from' => $row['new_from'],
 			'icon' => '<img src="' . $smf_settings['theme'][$icon_sources[$row['icon']]] . '/post/' . $row['icon'] . '.gif" align="middle" alt="' . $row['icon'] . '" />',
 		);
@@ -891,7 +890,7 @@ function smf_api_topposter($topNumber = 1, $output_method = '')
 	// Find the latest poster.
 
   $request = smf_db_query("
-		SELECT ID_MEMBER, realName, posts
+		SELECT id_member, real_name, posts
 		FROM {$smf_db_prefix}members
 		ORDER BY posts DESC
 		LIMIT $topNumber", __FILE__, __LINE__);
@@ -903,10 +902,10 @@ function smf_api_topposter($topNumber = 1, $output_method = '')
 
 	while ($row = mysql_fetch_assoc($request))
 		$return[] = array(
-			'id' => $row['ID_MEMBER'],
-			'name' => $row['realName'],
-			'href' => $scripturl . '?action=profile;u=' . $row['ID_MEMBER'],
-			'link' => '<a href="' . $scripturl . '?action=profile;u=' . $row['ID_MEMBER'] . '">' . $row['realName'] . '</a>',
+			'id' => $row['id_member'],
+			'name' => $row['real_name'],
+			'href' => $scripturl . '?action=profile;u=' . $row['id_member'],
+			'link' => '<a href="' . $scripturl . '?action=profile;u=' . $row['id_member'] . '">' . $row['real_name'] . '</a>',
 			'posts' => $row['posts']
 		);
 	mysql_free_result($request);
@@ -949,11 +948,11 @@ function smf_api_whos_online($topNumber = 9999, $output_method = '')
 	// Load the users online right now.
 	$result = smf_db_query("
 		SELECT
-			lo.ID_MEMBER, lo.logTime, mem.realName, mem.memberName, mem.showOnline,
-			mg.onlineColor, mg.ID_GROUP
+			lo.id_member, lo.log_time, mem.real_name, mem.member_name, mem.show_online,
+			mg.online_color, mg.id_group
 		FROM {$smf_db_prefix}log_online AS lo
-			LEFT JOIN {$smf_db_prefix}members AS mem ON (mem.ID_MEMBER = lo.ID_MEMBER)
-			LEFT JOIN {$smf_db_prefix}membergroups AS mg ON (mg.ID_GROUP = IF(mem.ID_GROUP = 0, mem.ID_POST_GROUP, mem.ID_GROUP))
+			LEFT JOIN {$smf_db_prefix}members AS mem ON (mem.id_member = lo.id_member)
+			LEFT JOIN {$smf_db_prefix}membergroups AS mg ON (mg.id_group = IF(mem.id_group = 0, mem.id_post_group, mem.id_group))
 			LIMIT $topNumber", __FILE__, __LINE__);
 
 	$return['users'] = array();
@@ -964,31 +963,31 @@ function smf_api_whos_online($topNumber = 9999, $output_method = '')
 
 	while ($row = mysql_fetch_assoc($result))
 	{
-		if (!isset($row['realName']))
+		if (!isset($row['real_name']))
 			$return['guests']++;
-		elseif (!empty($row['showOnline']) || $smf_user_info['is_admin']/*smf_allowed_to('moderate_forum')*/)
+		elseif (!empty($row['show_online']) || $smf_user_info['is_admin']/*smf_allowed_to('moderate_forum')*/)
 		{
 			// Some basic color coding...
-			if (!empty($row['onlineColor']))
-				$link = '<a href="' . $scripturl . '?action=profile;u=' . $row['ID_MEMBER'] . '" style="color: ' . $row['onlineColor'] . ';">' . $row['realName'] . '</a>';
+			if (!empty($row['online_color']))
+				$link = '<a href="' . $scripturl . '?action=profile;u=' . $row['id_member'] . '" style="color: ' . $row['online_color'] . ';">' . $row['real_name'] . '</a>';
 			else
-				$link = '<a href="' . $scripturl . '?action=profile;u=' . $row['ID_MEMBER'] . '">' . $row['realName'] . '</a>';
+				$link = '<a href="' . $scripturl . '?action=profile;u=' . $row['id_member'] . '">' . $row['real_name'] . '</a>';
 
 			// Bold any buddies.
-			if ($show_buddies && in_array($row['ID_MEMBER'], $smf_user_info['buddies']))
+			if ($show_buddies && in_array($row['id_member'], $smf_user_info['buddies']))
 			{
 				$return['buddies']++;
 				$link = '<b>' . $link . '</b>';
 			}
 
-			$return['users'][$row['logTime'] . $row['memberName']] = array(
-				'id' => $row['ID_MEMBER'],
-				'username' => $row['memberName'],
-				'name' => $row['realName'],
-				'group' => $row['ID_GROUP'],
-				'href' => $scripturl . '?action=profile;u=' . $row['ID_MEMBER'],
+			$return['users'][$row['log_time'] . $row['member_name']] = array(
+				'id' => $row['id_member'],
+				'username' => $row['member_name'],
+				'name' => $row['real_name'],
+				'group' => $row['id_group'],
+				'href' => $scripturl . '?action=profile;u=' . $row['id_member'],
 				'link' => $link,
-				'hidden' => empty($row['showOnline']),
+				'hidden' => empty($row['show_online']),
 				'is_last' => false,
 			);
 		}
@@ -1052,9 +1051,9 @@ function smf_api_board_stats($output_method = '')
   $scripturl .= '/index.php';
 
 	$totals = array(
-		'members' => $smf_settings['totalMembers'],
-		'posts' => $smf_settings['totalMessages'],
-		'topics' => $smf_settings['totalTopics']
+		'members' => $smf_settings['total_members'],
+		'posts' => $smf_settings['total_messages'],
+		'topics' => $smf_settings['total_topics']
 	);
 
 	$result = smf_db_query("
@@ -1106,7 +1105,7 @@ $context['show_karmastat'] = allowedTo('karmalog_view') && empty($smf_settings['
   $str = ' ' . $smf_txt[525] . ' <a href="' . $scripturl . '?action=mlist">' . $totals['members'] . '</a> ' . $smf_txt[310] . '<br />';
   $strreturn .= $str;
 
-  $str = $smf_txt[656] . '<br /><b> ' . '<a href="' . $scripturl . '?action=profile;u=' . $smf_settings['latestMember'] . '">' . $smf_settings['latestRealName'] . '</a></b><br />';
+  $str = $smf_txt[656] . '<br /><b> ' . '<a href="' . $scripturl . '?action=profile;u=' . $smf_settings['latest_member'] . '">' . $smf_settings['latest_real_name'] . '</a></b><br />';
   $strreturn .= $str;
 
 	// This is the "Recent Posts".
@@ -1164,12 +1163,12 @@ function smf_api_pm($output_method = '')
   $str = $smf_txt['hello_member_ndt'] . ' <b>' . $smf_user_info['name'] . '</b><br />';
   $strreturn .= $str;
 
-  $str = $smf_txt[660] . ' <a href="' . $scripturl . '?action=pm">' . $smf_user_info['instantMessages'] .
-  ' ' . ($smf_user_info['instantMessages'] != 1 ? $smf_txt[153] : $smf_txt[471]) . '</a>';
+  $str = $smf_txt[660] . ' <a href="' . $scripturl . '?action=pm">' . $smf_user_info['instant_messages'] .
+  ' ' . ($smf_user_info['instant_messages'] != 1 ? $smf_txt[153] : $smf_txt[471]) . '</a>';
   $strreturn .= $str;
   $str = $smf_txt['newmessages4'] . ' ' .
-  '<a href="' . $scripturl . '?action=pm">' . $smf_user_info['unreadMessages'] . '</a>' . ' ' .
-  ($smf_user_info['unreadMessages'] == 1 ? $smf_txt['newmessages0'] : $smf_txt['newmessages1']);
+  '<a href="' . $scripturl . '?action=pm">' . $smf_user_info['unread_messages'] . '</a>' . ' ' .
+  ($smf_user_info['unread_messages'] == 1 ? $smf_txt['newmessages0'] : $smf_txt['newmessages1']);
   $strreturn .= $str;
   /*
   $strreturn .= "<ul>";
@@ -1216,17 +1215,14 @@ function smf_api_register($username, $password, $email, $data = array(), $theme_
 	  $smf_settings['error_msg'] = "bad username";		
     return false;
   }
-
 	if (!smf_is_valid_email($email)) {
 		$smf_settings['error_msg'] = "bad email";
 		return false;
 	}
-
  	$username = smf_api_charset($username);
  	$password = smf_api_charset($password);
 
 	$rc = smf_register($username, $password, $email, $data, $theme_vars);
-
 	return $rc;
 }
 
@@ -1249,10 +1245,10 @@ function smf_api_update_user($id, $username = '', $password = '', $email = '', $
 
     $username = smf_api_charset($username);
 
-    if (isset($data['memberName']))
-   	  $data['memberName'] = '\'' . $username . '\'';
+    if (isset($data['member_name']))
+			$data['member_name'] = '\'' . $username . '\'';
  	  else
-      $data += array('memberName' => '\'' . $username . '\'');
+      $data += array('member_name' => '\'' . $username . '\'');
   }
   else
     $username = $smf_user_info['username'];
@@ -1278,10 +1274,10 @@ function smf_api_update_user($id, $username = '', $password = '', $email = '', $
 		  return false;
 	  }
     //$email = smf_api_charset($email);
-    if (isset($data['emailAddress']))
-   	  $data['emailAddress'] = '\'' . $email . '\'';
+    if (isset($data['email_address']))
+			$data['email_address'] = '\'' . $email . '\'';
  	  else
-      $data += array('emailAddress' => '\'' . $email . '\'');
+      $data += array('email_address' => '\'' . $email . '\'');
   }
 
   if (!empty($data))
@@ -1372,7 +1368,7 @@ function smf_api_logout($internal = false)
 		// If you log out, you aren't online anymore :P.
 		smf_db_query("
 			DELETE FROM {$smf_db_prefix}log_online
-			WHERE ID_MEMBER = $ID_MEMBER
+			WHERE id_member = $ID_MEMBER
 			LIMIT 1", __FILE__, __LINE__);
 	}
 

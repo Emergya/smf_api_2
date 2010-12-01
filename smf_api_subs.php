@@ -64,7 +64,7 @@ function smf_log_error($error_message, $file = null, $line = null)
 	// Insert the error into the database.
 	smf_db_query("
 		INSERT INTO {$smf_db_prefix}log_errors
-			(ID_MEMBER, logTime, IP, url, message, session)
+			(id_member, log_time, ip, url, message, session)
 		VALUES ($smf_user_info[id], " . time() . ", '$_SERVER[REMOTE_ADDR]', '" . (empty($_SERVER['QUERY_STRING']) ? '' : addslashes(htmlspecialchars('?' . $_SERVER['QUERY_STRING']))) . "', '" . addslashes($error_message) . "', '" . @session_id() . "')", __FILE__, __LINE__);
 
 	// Return the message to make things simpler.
@@ -79,14 +79,10 @@ function smf_db_query($string, $file, $line)
 
 	if (!$smf_connection)
 		return false;
-
 	$smf_settings['db_count'] = @$smf_settings['db_count'] + 1;
-
 	$ret = mysql_query($string, $smf_connection);
-
 	if ($ret === false)
 		smf_log_error(mysql_error($smf_connection), $file, $line);
-
 	return $ret;
 }
 
@@ -341,21 +337,21 @@ function smf_load_theme_data($ID_THEME = 0)
 
 	// Load variables from the current or default theme, global or this user's.
 	$result = smf_db_query("
-		SELECT variable, value, ID_MEMBER, ID_THEME
+		SELECT variable, value, id_member, id_theme
 		FROM {$smf_db_prefix}themes
-		WHERE ID_MEMBER IN (0, $member)
-			AND ID_THEME" . ($theme == 1 ? ' = 1' : " IN ($theme, 1)"), __FILE__, __LINE__);
+		WHERE id_member IN (0, $member)
+			AND id_theme" . ($theme == 1 ? ' = 1' : " IN ($theme, 1)"), __FILE__, __LINE__);
 	// Pick between $smf_settings['theme'] and $smf_user_info['theme'] depending on whose data it is.
 	$themeData = array(0 => array(), $member => array());
 	while ($row = mysql_fetch_assoc($result))
 	{
 		// If this is the theme_dir of the default theme, store it.
-		if (in_array($row['variable'], array('theme_dir', 'theme_url', 'images_url')) && $row['ID_THEME'] == '1' && empty($row['ID_MEMBER']))
+		if (in_array($row['variable'], array('theme_dir', 'theme_url', 'images_url')) && $row['id_theme'] == '1' && empty($row['id_member']))
 			$themeData[0]['default_' . $row['variable']] = $row['value'];
 
 		// If this isn't set yet, is a theme option, or is not the default theme..
-		if (!isset($themeData[$row['ID_MEMBER']][$row['variable']]) || $row['ID_THEME'] != '1')
-			$themeData[$row['ID_MEMBER']][$row['variable']] = substr($row['variable'], 0, 5) == 'show_' ? $row['value'] == '1' : $row['value'];
+		if (!isset($themeData[$row['id_member']][$row['variable']]) || $row['id_theme'] != '1')
+			$themeData[$row['id_member']][$row['variable']] = substr($row['variable'], 0, 5) == 'show_' ? $row['value'] == '1' : $row['value'];
 	}
 	mysql_free_result($result);
 
@@ -532,7 +528,7 @@ function smf_forum_time($use_user_offset = true, $timestamp = null)
 	elseif ($timestamp == 0)
 		return 0;
 
-	return $timestamp + ($smf_settings['time_offset'] + ($use_user_offset ? $smf_user_info['timeOffset'] : 0)) * 3600;
+	return $timestamp + ($smf_settings['time_offset'] + ($use_user_offset ? $smf_user_info['time_offset'] : 0)) * 3600;
 }
 
 // Format a time to make it look purdy.
@@ -544,10 +540,10 @@ function smf_format_time($logTime)
 	//return smf_timeformat($logTime, false);
 
 	// Offset the time - but we can't have a negative date!
-	$time = max($logTime + (@$smf_user_info['timeOffset'] + $smf_settings['time_offset']) * 3600, 0);
+	$time = max($logTime + (@$smf_user_info['time_offset'] + $smf_settings['time_offset']) * 3600, 0);
 
 	// Format some in caps, and then any other characters..
-	return strftime(strtr(!empty($smf_user_info['timeFormat']) ? $smf_user_info['timeFormat'] : $smf_settings['time_format'], array('%a' => $smf_func['ucwords'](strftime('%a', $time)), '%A' => $smf_func['ucwords'](strftime('%A', $time)), '%b' => $smf_func['ucwords'](strftime('%b', $time)), '%B' => $smf_func['ucwords'](strftime('%B', $time)))), $time);
+	return strftime(strtr(!empty($smf_user_info['time_format']) ? $smf_user_info['time_format'] : $smf_settings['time_format'], array('%a' => $smf_func['ucwords'](strftime('%a', $time)), '%A' => $smf_func['ucwords'](strftime('%A', $time)), '%b' => $smf_func['ucwords'](strftime('%b', $time)), '%B' => $smf_func['ucwords'](strftime('%B', $time)))), $time);
   //return strftime(strtr(!empty($smf_user_info['timeFormat']) ? $smf_user_info['timeFormat'] : $smf_settings['time_format'], array('%a' => ucwords(strftime('%a', $time)), '%A' => ucwords(strftime('%A', $time)), '%b' => ucwords(strftime('%b', $time)), '%B' => ucwords(strftime('%B', $time)))), $time);
 }
 
@@ -692,17 +688,17 @@ function smf_is_banned($forceCheck = false)
 	  return false;
   //$smf_settings['error_msg'] = "function smf_is_user() admin=".$smf_user_info['is_admin']."=";
 	// You cannot be banned if you are an admin - doesn't help if you log out.
-  $ID_MEMBER = $smf_user_info['ID_MEMBER'];
+  $ID_MEMBER = $smf_user_info['id_member'];
 	if ($ID_MEMBER == 1 || $smf_user_info['is_admin'])
 		return false;
 
 	// Only check the ban every so often. (to reduce load.)
-	if ($forceCheck || !isset($_SESSION['ban']) || empty($smf_settings['banLastUpdated']) || ($_SESSION['ban']['last_checked'] < $smf_settings['banLastUpdated']) || $_SESSION['ban']['ID_MEMBER'] != $ID_MEMBER || $_SESSION['ban']['ip'] != $smf_user_info['ip'] || $_SESSION['ban']['ip2'] != $smf_user_info['ip2'] || (isset($smf_user_info['email'], $_SESSION['ban']['email']) && $_SESSION['ban']['email'] != $smf_user_info['email']))
+	if ($forceCheck || !isset($_SESSION['ban']) || empty($smf_settings['banLastUpdated']) || ($_SESSION['ban']['last_checked'] < $smf_settings['banLastUpdated']) || $_SESSION['ban']['id_member'] != $ID_MEMBER || $_SESSION['ban']['ip'] != $smf_user_info['ip'] || $_SESSION['ban']['ip2'] != $smf_user_info['ip2'] || (isset($smf_user_info['email'], $_SESSION['ban']['email']) && $_SESSION['ban']['email'] != $smf_user_info['email']))
 	{
 		// Innocent until proven guilty.  (but we know you are! :P)
 		$_SESSION['ban'] = array(
 			'last_checked' => time(),
-			'ID_MEMBER' => $ID_MEMBER,
+			'id_member' => $ID_MEMBER,
 			'ip' => $smf_user_info['ip'],
 			'ip2' => $smf_user_info['ip2'],
 			'email' => $smf_user_info['email'],
@@ -736,7 +732,7 @@ function smf_is_banned($forceCheck = false)
 
 		// How about this user?
 		if (!$smf_user_info['is_guest'] && !empty($ID_MEMBER))
-			$ban_query[] = "bi.ID_MEMBER = $ID_MEMBER";
+			$ban_query[] = "bi.id_member = $ID_MEMBER";
 
 		// Check the ban, if there's information.
 		if (!empty($ban_query))
@@ -748,10 +744,10 @@ function smf_is_banned($forceCheck = false)
 				'cannot_register',
 			);
 			$request = smf_db_query("
-				SELECT bi.ID_BAN, bi.email_address, bi.ID_MEMBER, bg.cannot_access, bg.cannot_register,
+				SELECT bi.id_ban, bi.email_address, bi.id_member, bg.cannot_access, bg.cannot_register,
 					bg.cannot_post, bg.cannot_login, bg.reason
 				FROM ({$smf_db_prefix}ban_groups AS bg, {$smf_db_prefix}ban_items AS bi)
-				WHERE bg.ID_BAN_GROUP = bi.ID_BAN_GROUP
+				WHERE bg.id_ban_group = bi.id_ban_group
 					AND (bg.expire_time IS NULL OR bg.expire_time > " . time() . ")
 					AND (" . implode(' OR ', $ban_query) . ')', __FILE__, __LINE__);
 			// Store every type of ban that applies to you in your session.
@@ -761,9 +757,9 @@ function smf_is_banned($forceCheck = false)
 					if (!empty($row[$restriction]))
 					{
 						$_SESSION['ban'][$restriction]['reason'] = $row['reason'];
-						$_SESSION['ban'][$restriction]['ids'][] = $row['ID_BAN'];
+						$_SESSION['ban'][$restriction]['ids'][] = $row['id_ban'];
 
-						if (!$smf_user_info['is_guest'] && $restriction == 'cannot_access' && ($row['ID_MEMBER'] == $ID_MEMBER || $row['email_address'] == $smf_user_info['email']))
+						if (!$smf_user_info['is_guest'] && $restriction == 'cannot_access' && ($row['id_member'] == $ID_MEMBER || $row['email_address'] == $smf_user_info['email']))
 							$flag_is_activated = true;
 					}
 			}
@@ -778,16 +774,16 @@ function smf_is_banned($forceCheck = false)
 		foreach ($bans as $key => $value)
 			$bans[$key] = (int) $value;
 		$request = smf_db_query("
-			SELECT bi.ID_BAN, bg.reason
+			SELECT bi.id_ban, bg.reason
 			FROM ({$smf_db_prefix}ban_items AS bi, {$smf_db_prefix}ban_groups AS bg)
-			WHERE bg.ID_BAN_GROUP = bi.ID_BAN_GROUP
+			WHERE bg.id_ban_group = bi.id_ban_group
 				AND (bg.expire_time IS NULL OR bg.expire_time > " . time() . ")
 				AND bg.cannot_access = 1
-				AND bi.ID_BAN IN (" . implode(', ', $bans) . ")
+				AND bi.id_ban IN (" . implode(', ', $bans) . ")
 			LIMIT " . count($bans), __FILE__, __LINE__);
 		while ($row = mysql_fetch_assoc($request))
 		{
-			$_SESSION['ban']['cannot_access']['ids'][] = $row['ID_BAN'];
+			$_SESSION['ban']['cannot_access']['ids'][] = $row['id_ban'];
 			$_SESSION['ban']['cannot_access']['reason'] = $row['reason'];
 		}
 		mysql_free_result($request);
@@ -832,21 +828,21 @@ function smf_is_banned_email($email, $restriction, $error)
 
 	// ...and add to that the email address you're trying to register.
 	$request = smf_db_query("
-		SELECT bi.ID_BAN, bg.$restriction, bg.cannot_access, bg.reason
+		SELECT bi.id_ban, bg.$restriction, bg.cannot_access, bg.reason
 		FROM ({$smf_db_prefix}ban_items AS bi, {$smf_db_prefix}ban_groups AS bg)
-		WHERE bg.ID_BAN_GROUP = bi.ID_BAN_GROUP
+		WHERE bg.id_ban_group = bi.id_ban_group
 			AND '$email' LIKE bi.email_address
 			AND (bg.$restriction = 1 OR bg.cannot_access = 1)", __FILE__, __LINE__);
 	while ($row = mysql_fetch_assoc($request))
 	{
 		if (!empty($row['cannot_access']))
 		{
-			$_SESSION['ban']['cannot_access']['ids'][] = $row['ID_BAN'];
+			$_SESSION['ban']['cannot_access']['ids'][] = $row['id_ban'];
 			$_SESSION['ban']['cannot_access']['reason'] = $row['reason'];
 		}
 		if (!empty($row[$restriction]))
 		{
-			$ban_ids[] = $row['ID_BAN'];
+			$ban_ids[] = $row['id_ban'];
 			$ban_reason = $row['reason'];
 		}
 	}
@@ -921,10 +917,10 @@ function smf_allowed_to($permission, $boards = null)
 		return true;
 
 	// You're never allowed to do something if your data hasn't been loaded yet!
-  if (empty($smf_user_info['ID_MEMBER']))
+  if (empty($smf_user_info['id_member']))
     return false;
 
-  $ID_MEMBER = $smf_user_info['ID_MEMBER'];
+  $ID_MEMBER = $smf_user_info['id_member'];
 
 	// Administrators are supermen :P.
 	if ($smf_user_info['is_admin'])
@@ -961,16 +957,16 @@ function smf_allowed_to($permission, $boards = null)
 	}
 
 	$request = smf_db_query("
-		SELECT MIN(bp.addDeny) AS addDeny
+		SELECT MIN(bp.add_deny) AS add_deny
 		FROM ({$smf_db_prefix}boards AS b, {$smf_db_prefix}board_permissions AS bp)
-			LEFT JOIN {$smf_db_prefix}moderators AS mods ON (mods.ID_BOARD = b.ID_BOARD AND mods.ID_MEMBER = $ID_MEMBER)
-		WHERE b.ID_BOARD IN (" . implode(', ', $boards) . ")" . (isset($max_allowable_mode) ? "
+			LEFT JOIN {$smf_db_prefix}moderators AS mods ON (mods.id_board = b.id_board AND mods.id_member = $ID_MEMBER)
+		WHERE b.id_board IN (" . implode(', ', $boards) . ")" . (isset($max_allowable_mode) ? "
 			AND b.permission_mode <= $max_allowable_mode" : '') . "
-			AND bp.ID_BOARD = " . (empty($smf_settings['permission_enable_by_board']) ? '0' : 'IF(b.permission_mode = 1, b.ID_BOARD, 0)') . "
-			AND bp.ID_GROUP IN (" . implode(', ', $smf_user_info['groups']) . ", 3)
+			AND bp.id_board = " . (empty($smf_settings['permission_enable_by_board']) ? '0' : 'IF(b.permission_mode = 1, b.id_board, 0)') . "
+			AND bp.id_group IN (" . implode(', ', $smf_user_info['groups']) . ", 3)
 			AND bp.permission " . (is_array($permission) ? "IN ('" . implode("', '", $permission) . "')" : " = '$permission'") . "
-			AND (mods.ID_MEMBER IS NOT NULL OR bp.ID_GROUP != 3)
-		GROUP BY b.ID_BOARD", __FILE__, __LINE__);
+			AND (mods.id_member IS NOT NULL OR bp.id_group != 3)
+		GROUP BY b.id_board", __FILE__, __LINE__);
 
 	// Make sure they can do it on all of the boards.
 	if (mysql_num_rows($request) != count($boards))
@@ -978,7 +974,7 @@ function smf_allowed_to($permission, $boards = null)
 
 	$result = true;
 	while ($row = mysql_fetch_assoc($request))
-		$result &= !empty($row['addDeny']);
+		$result &= !empty($row['add_deny']);
 	mysql_free_result($request);
 
 	// If the query returned 1, they can do it... otherwise, they can't.
@@ -1028,10 +1024,10 @@ function smf_register($username, $password, $email, $extra_fields = array(), $th
 		'check_reserved_name' => true,
 		'check_password_strength' => false,
 		'check_email_ban' => false,
-		'send_welcome_email' => isset($smf_user_info['emailPassword']),
-		'require' => isset($smf_user_info['emailActivate']) ? 'activation' : 'nothing',
-		'memberGroup' => empty($smf_user_info['group']) ? 0 : (int) $smf_user_info['group'],
-		'hideEmail' => true,
+		'send_welcome_email' => isset($smf_user_info['email_password']),
+		'require' => isset($smf_user_info['email_activate']) ? 'activation' : 'nothing',
+		'member_group' => empty($smf_user_info['group']) ? 0 : (int) $smf_user_info['group'],
+		'hide_email' => true,
 		'theme_vars' => $theme_vars,
 	);
 
@@ -1077,17 +1073,17 @@ function smf_update_stats($type, $parameter1 = null, $parameter2 = null)
     {
       // Update the latest activated member (highest ID_MEMBER) and count.
       $result = smf_db_query("
-        SELECT COUNT(*), MAX(ID_MEMBER)
+        SELECT COUNT(*), MAX(id_member)
         FROM {$smf_db_prefix}members
         WHERE is_activated = 1", __FILE__, __LINE__);
-      list ($changes['totalMembers'], $changes['latestMember']) = mysql_fetch_row($result);
+      list ($changes['total_members'], $changes['latestMember']) = mysql_fetch_row($result);
       mysql_free_result($result);
 
       // Get the latest activated member's display name.
       $result = smf_db_query("
-        SELECT realName
+        SELECT real_name
         FROM {$smf_db_prefix}members
-        WHERE ID_MEMBER = " . (int) $changes['latestMember'] . "
+        WHERE id_member = " . (int) $changes['latestMember'] . "
         LIMIT 1", __FILE__, __LINE__);
 			list ($changes['latestRealName']) = mysql_fetch_row($result);
 			mysql_free_result($result);
@@ -1113,14 +1109,14 @@ function smf_update_stats($type, $parameter1 = null, $parameter2 = null)
 		{
 			// Update the latest member (highest ID_MEMBER) and count.
 			$result = smf_db_query("
-				SELECT COUNT(*), MAX(ID_MEMBER)
+				SELECT COUNT(*), MAX(id_member)
 				FROM {$smf_db_prefix}members", __FILE__, __LINE__);
 			list ($changes['totalMembers'], $changes['latestMember']) = mysql_fetch_row($result);
 			mysql_free_result($result);
 
 			// Get the latest member's display name.
 			$result = smf_db_query("
-				SELECT realName
+				SELECT real_name
 				FROM {$smf_db_prefix}members
 				WHERE ID_MEMBER = " . (int) $changes['latestMember'] . "
 				LIMIT 1", __FILE__, __LINE__);
@@ -1144,36 +1140,36 @@ function smf_update_member_data($members, $data)
 
 
 	if (is_array($members))
-		$condition = 'ID_MEMBER IN (' . implode(', ', $members) . ')
+		$condition = 'id_member IN (' . implode(', ', $members) . ')
 		LIMIT ' . count($members);
 	elseif ($members === null)
 		$condition = '1';
 	else
-		$condition = 'ID_MEMBER = ' . $members . '
+		$condition = 'id_member = ' . $members . '
 		LIMIT 1';
 
   // Only a few member variables are allowed for integration.
   $integration_vars = array(
-    'memberName',
-    'realName',
-    'emailAddress',
+    'member_name',
+    'real_name',
+    'email_address',
     'passwd',
     //'passwordSalt',
     'gender',
     'birthdate',
-    'personalText',
+    'personal_text',
     'usertitle',
-    'ICQ',
-    'AIM',
-    'YIM',
-    'MSN',
+    'icq',
+    'aim',
+    'yim',
+    'msn',
     'signature',
-    'websiteTitle',
-    'websiteUrl',
+    'website_title',
+    'website_url',
     'location',
-    'hideEmail',
-    'timeFormat',
-    'timeOffset',
+    'hide_email',
+    'time_format',
+    'time_offset',
     'avatar',
     'lngfile',
   );
@@ -1190,10 +1186,10 @@ function smf_update_member_data($members, $data)
 	// Ensure posts, instantMessages, and unreadMessages never go below 0.
 	if (isset($data['posts']))
 		$data['posts'] = 'IF(' . $data['posts'] . ' < 0, 0, ' . $data['posts'] . ')';
-	if (isset($data['instantMessages']))
-		$data['instantMessages'] = 'IF(' . $data['instantMessages'] . ' < 0, 0, ' . $data['instantMessages'] . ')';
-	if (isset($data['unreadMessages']))
-		$data['unreadMessages'] = 'IF(' . $data['unreadMessages'] . ' < 0, 0, ' . $data['unreadMessages'] . ')';
+	if (isset($data['instant_messages']))
+		$data['instant_messages'] = 'IF(' . $data['instant_messages'] . ' < 0, 0, ' . $data['instant_messages'] . ')';
+	if (isset($data['unread_messages']))
+		$data['unread_messages'] = 'IF(' . $data['unread_messages'] . ' < 0, 0, ' . $data['unread_messages'] . ')';
 
 	$setString = '';
 	foreach ($data as $var => $val)
@@ -1224,10 +1220,10 @@ function smf_is_email_in_use($email, $username)
 
 	// Check if the email address is in use.
 	$request = smf_db_query("
-		SELECT ID_MEMBER
+		SELECT id_member
 		FROM {$smf_db_prefix}members
-		WHERE emailAddress = '$email'
-			OR emailAddress = '$username'
+		WHERE email_address = '$email'
+			OR email_address = '$username'
 		LIMIT 1", __FILE__, __LINE__);
 
 	if (mysql_num_rows($request) != 0)
@@ -1253,17 +1249,16 @@ function smf_register_member(&$regOptions)
 	if (empty($regOptions['username']))
 		return false;
 
-
 	$scripturl = $smf_settings['forum_url'];
 
   $validation_code = '';
 
 	// Check if the email address is in use.
 	$request = smf_db_query("
-		SELECT ID_MEMBER
+		SELECT id_member
 		FROM {$smf_db_prefix}members
-		WHERE emailAddress = '$regOptions[email]'
-			OR emailAddress = '$regOptions[username]'
+		WHERE email_address = '$regOptions[email]'
+			OR email_address = '$regOptions[username]'
 		LIMIT 1", __FILE__, __LINE__);
 	// !!! Separate the sprintf?
 	if (mysql_num_rows($request) != 0)
@@ -1275,71 +1270,70 @@ function smf_register_member(&$regOptions)
 	}
 	mysql_free_result($request);
 
-  if (!isset($regOptions[realName]))
-    $regOptions[realName] = $regOptions[username];
+  if (!isset($regOptions[real_name]))
+    $regOptions[real_name] = $regOptions[username];
     
 	// Some of these might be overwritten. (the lower ones that are in the arrays below.)
 	$regOptions['register_vars'] = array(
-		'memberName' => "'$regOptions[username]'",
-		'emailAddress' => "'$regOptions[email]'",
-    'hideEmail' => "'$regOptions[hideEmail]'",
+		'member_name' => "'$regOptions[username]'",
+		'email_address' => "'$regOptions[email]'",
+    'hide_email' => "'$regOptions[hide_email]'",
 		'passwd' => '\'' . sha1(strtolower($regOptions['username']) . $regOptions['password']) . '\'',
-		'passwordSalt' => '\'' . substr(md5(rand()), 0, 4) . '\'',
+		'password_salt' => '\'' . substr(md5(rand()), 0, 4) . '\'',
 		'posts' => 0,
-		'dateRegistered' => time(),
-		'memberIP' => "'$smf_user_info[ip]'",
-		'memberIP2' => "'$_SERVER[BAN_CHECK_IP]'",
+		'date_registered' => time(),
+		'member_ip' => "'$smf_user_info[ip]'",
+		'member_ip2' => "'$_SERVER[BAN_CHECK_IP]'",
 		'validation_code' => "'$validation_code'",
-		'realName' => "'$regOptions[realName]'",
-		'personalText' => '\'' . addslashes($smf_settings['default_personalText']) . '\'',
+		'real_name' => "'$regOptions[real_name]'",
+		'personal_text' => '\'' . addslashes($smf_settings['default_personal_text']) . '\'',
 		'pm_email_notify' => 1,
-		'ID_THEME' => 0,
-		'ID_POST_GROUP' => 4,
+		'id_theme' => 0,
+		'id_post_group' => 4,
 		'lngfile' => "''",
 		'buddy_list' => "''",
 		'pm_ignore_list' => "''",
-		'messageLabels' => "''",
+		'message_labels' => "''",
 		//'personalText' => "''",     // Grudge, this is a bug in 1.1.1!?
-		'websiteTitle' => "''",
-		'websiteUrl' => "''",
+		'website_title' => "''",
+		'website_url' => "''",
 		'location' => "''",
-		'ICQ' => "''",
-		'AIM' => "''",
-		'YIM' => "''",
-		'MSN' => "''",
-		'timeFormat' => "''",
+		'icq' => "''",
+		'aim' => "''",
+		'yim' => "''",
+		'msn' => "''",
+		'time_format' => "''",
 		'signature' => "''",
 		'avatar' => "''",
 		'usertitle' => "''",
-		'secretQuestion' => "''",
-		'secretAnswer' => "''",
-		'additionalGroups' => "''",
-		'smileySet' => "''",
+		'secret_question' => "''",
+		'secret_answer' => "''",
+		'additional_groups' => "''",
+		'smiley_set' => "''",
 	);
 
 	// Setup the activation status on this new account so it is correct - firstly is it an under age account?
 
   $regOptions['register_vars']['is_activated'] = 1;
 
-	if (isset($regOptions['memberGroup']))
+	if (isset($regOptions['member_group']))
 	{
 		// Make sure the ID_GROUP will be valid, if this is an administator.
-		$regOptions['register_vars']['ID_GROUP'] = $regOptions['memberGroup'] == 1 && !smf_allowed_to('admin_forum') ? 0 : $regOptions['memberGroup'];
+		$regOptions['register_vars']['id_group'] = $regOptions['member_group'] == 1 && !smf_allowed_to('admin_forum') ? 0 : $regOptions['member_group'];
 
 		// Check if this group is assignable.
 		$unassignableGroups = array(-1, 3);
 		$request = smf_db_query("
-			SELECT ID_GROUP
+			SELECT id_group
 			FROM {$smf_db_prefix}membergroups
-			WHERE minPosts != -1", __FILE__, __LINE__);
+			WHERE min_posts != -1", __FILE__, __LINE__);
 		while ($row = mysql_fetch_assoc($request))
-			$unassignableGroups[] = $row['ID_GROUP'];
+			$unassignableGroups[] = $row['id_group'];
 		mysql_free_result($request);
 
-		if (in_array($regOptions['register_vars']['ID_GROUP'], $unassignableGroups))
-			$regOptions['register_vars']['ID_GROUP'] = 0;
+		if (in_array($regOptions['register_vars']['id_group'], $unassignableGroups))
+			$regOptions['register_vars']['id_group'] = 0;
 	}
-
 	// Integrate optional member settings to be set.
 	if (!empty($regOptions['extra_register_vars']))
 		foreach ($regOptions['extra_register_vars'] as $var => $value)
@@ -1360,9 +1354,7 @@ function smf_register_member(&$regOptions)
 		INSERT INTO {$smf_db_prefix}members
 			(" . implode(', ', array_keys($regOptions['register_vars'])) . ")
 		VALUES (" . implode(', ', $regOptions['register_vars']) . ')', __FILE__, __LINE__);
-
 	$memberID = smf_db_insert_id();
-
 	// Grab their real name and send emails using it.
 	$realName = substr($regOptions['register_vars']['realName'], 1, -1);
 
@@ -1378,7 +1370,7 @@ function smf_register_member(&$regOptions)
 				($memberID, SUBSTRING('$var', 1, 255), SUBSTRING('$val', 1, 65534)),";
 		smf_db_query("
 			INSERT INTO {$smf_db_prefix}themes
-				(ID_MEMBER, variable, value)
+				(id_member, variable, value)
 			VALUES " . substr($setString, 0, -1), __FILE__, __LINE__);
 	}
 
@@ -1407,10 +1399,10 @@ function smf_is_reserved_name($name, $current_ID_MEMBER = 0, $is_name = true, $f
 
 	// Make sure they don't want someone else's name.
 	$request = smf_db_query("
-		SELECT ID_MEMBER
+		SELECT id_member
 		FROM {$smf_db_prefix}members
-		WHERE " . (empty($current_ID_MEMBER) ? '' : "ID_MEMBER != $current_ID_MEMBER
-			AND ") . "(realName LIKE '$checkName' OR memberName LIKE '$checkName')
+		WHERE " . (empty($current_ID_MEMBER) ? '' : "id_member != $current_ID_MEMBER
+			AND ") . "(real_name LIKE '$checkName' OR member_name LIKE '$checkName')
 		LIMIT 1", __FILE__, __LINE__);
 	if (mysql_num_rows($request) > 0)
 	{
@@ -1421,9 +1413,9 @@ function smf_is_reserved_name($name, $current_ID_MEMBER = 0, $is_name = true, $f
 
 	// Does name case insensitive match a member group name?
 	$request = smf_db_query("
-		SELECT ID_GROUP
+		SELECT id_group
 		FROM {$smf_db_prefix}membergroups
-		WHERE groupName LIKE '$checkName'
+		WHERE group_name LIKE '$checkName'
 		LIMIT 1", __FILE__, __LINE__);
 	if (mysql_num_rows($request) > 0)
 	{
@@ -1476,32 +1468,32 @@ function smf_find_members($names, $use_wildcards = false, $buddies_only = false,
 	$results = array();
 
 	// This ensures you can't search someones email address if you can't see it.
-	$email_condition = $smf_user_info['is_admin'] || empty($smf_settings['allow_hideEmail']) ? '' : 'hideEmail = 0 AND ';
+	$email_condition = $smf_user_info['is_admin'] || empty($smf_settings['allow_hideEmail']) ? '' : 'hide_email = 0 AND ';
 
 	if ($use_wildcards || $maybe_email)
 		$email_condition = "
-			OR (" . $email_condition . "emailAddress $comparison '" . implode("') OR ($email_condition emailAddress $comparison '", $names) . "')";
+			OR (" . $email_condition . "email_address $comparison '" . implode("') OR ($email_condition email_address $comparison '", $names) . "')";
 	else
 		$email_condition = '';
 
 	// Search by username, display name, and email address.
 	$request = smf_db_query("
-		SELECT ID_MEMBER, memberName, realName, emailAddress, hideEmail
+		SELECT id_member, member_name, real_name, email_address, hide_email
 		FROM {$smf_db_prefix}members
-		WHERE (memberName $comparison '" . implode("' OR memberName $comparison '", $names) . "'
-			OR realName $comparison '" . implode("' OR realName $comparison '", $names) . "'$email_condition)
-			" . ($buddies_only ? 'AND ID_MEMBER IN (' . implode(', ', $smf_user_info['buddies']) . ')' : '') . "
+		WHERE (member_name $comparison '" . implode("' OR member_name $comparison '", $names) . "'
+			OR real_name $comparison '" . implode("' OR real_name $comparison '", $names) . "'$email_condition)
+			" . ($buddies_only ? 'AND id_member IN (' . implode(', ', $smf_user_info['buddies']) . ')' : '') . "
 			AND is_activated IN (1, 11)" . ($max == null ? '' : "
 		LIMIT " . (int) $max), __FILE__, __LINE__);
 	while ($row = mysql_fetch_assoc($request))
 	{
-		$results[$row['ID_MEMBER']] = array(
-			'id' => $row['ID_MEMBER'],
-			'name' => $row['realName'],
-			'username' => $row['memberName'],
-			'email' => empty($row['hideEmail']) || empty($smf_settings['allow_hideEmail']) || $smf_user_info['is_admin'] ? $row['emailAddress'] : '',
-			'href' => $scripturl . '?action=profile;u=' . $row['ID_MEMBER'],
-			'link' => '<a href="' . $scripturl . '?action=profile;u=' . $row['ID_MEMBER'] . '">' . $row['realName'] . '</a>'
+		$results[$row['id_member']] = array(
+			'id' => $row['id_member'],
+			'name' => $row['real_name'],
+			'username' => $row['member_name'],
+			'email' => empty($row['hide_email']) || empty($smf_settings['allow_hideEmail']) || $smf_user_info['is_admin'] ? $row['email_address'] : '',
+			'href' => $scripturl . '?action=profile;u=' . $row['id_member'],
+			'link' => '<a href="' . $scripturl . '?action=profile;u=' . $row['id_member'] . '">' . $row['real_name'] . '</a>'
 		);
 	}
 	mysql_free_result($request);
@@ -1519,13 +1511,13 @@ function smf_api_delete_members($users)
   if (!$smf_connection)
 	  return false;
 
-  if (empty($smf_user_info['ID_MEMBER']) || (!is_array($users) && $users == 1 ))
+  if (empty($smf_user_info['id_member']) || (!is_array($users) && $users == 1 ))
     return false;
 
   if ($smf_user_info['is_guest'] || empty($smf_user_info['passwd']))
     return false;
 
-  $ID_MEMBER = $smf_user_info['ID_MEMBER'];
+  $ID_MEMBER = $smf_user_info['id_member'];
 
   // Only one user is deleted in Drupal at the moment.
 	// If it's not an array, make it so!
@@ -1564,70 +1556,70 @@ function smf_api_delete_members($users)
 	// Make these peoples' posts guest posts.
 	smf_db_query("
 		UPDATE {$smf_db_prefix}messages
-		SET ID_MEMBER = 0" . (!empty($smf_settings['allow_hideEmail']) ? ", posterEmail = ''" : '') . "
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		SET id_member = 0" . (!empty($smf_settings['allow_hideEmail']) ? ", poster_email = ''" : '') . "
+		WHERE id_member $condition", __FILE__, __LINE__);
 	smf_db_query("
 		UPDATE {$smf_db_prefix}polls
-		SET ID_MEMBER = 0
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		SET id_member = 0
+		WHERE id_member $condition", __FILE__, __LINE__);
 
 	// Make these peoples' posts guest first posts and last posts.
 	smf_db_query("
 		UPDATE {$smf_db_prefix}topics
-		SET ID_MEMBER_STARTED = 0
-		WHERE ID_MEMBER_STARTED $condition", __FILE__, __LINE__);
+		SET id_member_started = 0
+		WHERE id_member_started $condition", __FILE__, __LINE__);
 	smf_db_query("
 		UPDATE {$smf_db_prefix}topics
-		SET ID_MEMBER_UPDATED = 0
-		WHERE ID_MEMBER_UPDATED $condition", __FILE__, __LINE__);
+		SET id_member_updated = 0
+		WHERE id_member_updated $condition", __FILE__, __LINE__);
 
 	smf_db_query("
 		UPDATE {$smf_db_prefix}log_actions
-		SET ID_MEMBER = 0
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		SET id_member = 0
+		WHERE id_member $condition", __FILE__, __LINE__);
 
 	smf_db_query("
 		UPDATE {$smf_db_prefix}log_banned
-		SET ID_MEMBER = 0
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		SET id_member = 0
+		WHERE id_member $condition", __FILE__, __LINE__);
 
 	smf_db_query("
 		UPDATE {$smf_db_prefix}log_errors
-		SET ID_MEMBER = 0
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		SET id_member = 0
+		WHERE id_member $condition", __FILE__, __LINE__);
 
 	// Delete the member.
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}members
-		WHERE ID_MEMBER $condition
+		WHERE id_member $condition
 		LIMIT " . count($users), __FILE__, __LINE__);
 
 	// Delete the logs...
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}log_boards
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}log_karma
-		WHERE ID_TARGET $condition
-			OR ID_EXECUTOR $condition", __FILE__, __LINE__);
+		WHERE id_target $condition
+			OR id_executor $condition", __FILE__, __LINE__);
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}log_mark_read
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}log_notify
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}log_online
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}log_polls
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}log_topics
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}collapsed_categories
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 
 	// Delete personal messages.
 	//require_once($smf_sourcedir . '/PersonalMessage.php');
@@ -1635,31 +1627,31 @@ function smf_api_delete_members($users)
 
 	smf_db_query("
 		UPDATE {$smf_db_prefix}personal_messages
-		SET ID_MEMBER_FROM = 0
-		WHERE ID_MEMBER_FROM $condition", __FILE__, __LINE__);
+		SET id_member_from = 0
+		WHERE id_member_from $condition", __FILE__, __LINE__);
 
 	// Delete avatar.
 	//require_once($smf_sourcedir . '/ManageAttachments.php');
-	smf_remove_attachments('a.ID_MEMBER ' . $condition);
+	smf_remove_attachments('a.id_member ' . $condition);
 
 	// It's over, no more moderation for you.
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}moderators
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 
 	// If you don't exist we can't ban you.
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}ban_items
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 
 	// Remove individual theme settings.
 	smf_db_query("
 		DELETE FROM {$smf_db_prefix}themes
-		WHERE ID_MEMBER $condition", __FILE__, __LINE__);
+		WHERE id_member $condition", __FILE__, __LINE__);
 
 	// These users are nobody's buddy nomore.
 	$request = smf_db_query("
-		SELECT ID_MEMBER, pm_ignore_list, buddy_list
+		SELECT id member, pm_ignore_list, buddy_list
 		FROM {$smf_db_prefix}members
 		WHERE FIND_IN_SET(" . implode(', pm_ignore_list) OR FIND_IN_SET(', $users) . ', pm_ignore_list) OR FIND_IN_SET(' . implode(', buddy_list) OR FIND_IN_SET(', $users) . ', buddy_list)', __FILE__, __LINE__);
 	while ($row = mysql_fetch_assoc($request))
@@ -1668,7 +1660,7 @@ function smf_api_delete_members($users)
 			SET
 				pm_ignore_list = '" . implode(',', array_diff(explode(',', $row['pm_ignore_list']), $users)) . "',
 				buddy_list = '" . implode(',', array_diff(explode(',', $row['buddy_list']), $users)) . "'
-			WHERE ID_MEMBER = $row[ID_MEMBER]
+			WHERE id_member = $row[id_member]
 			LIMIT 1", __FILE__, __LINE__);
 	mysql_free_result($request);
 
@@ -1685,7 +1677,7 @@ function smf_delete_messages($personal_messages, $folder = null, $owner = null)
 {
 	global $smf_db_prefix, $smf_user_info;
 
-  $ID_MEMBER = $smf_user_info['ID_MEMBER'];
+  $ID_MEMBER = $smf_user_info['id_member'];
 
 	if ($owner === null)
 		$owner = array($ID_MEMBER);
@@ -1703,7 +1695,7 @@ function smf_delete_messages($personal_messages, $folder = null, $owner = null)
 			$personal_messages[$index] = (int) $delete_id;
 
 		$where =  '
-				AND ID_PM IN (' . implode(', ', array_unique($personal_messages)) . ')';
+				AND id_pm IN (' . implode(', ', array_unique($personal_messages)) . ')';
 	}
 	else
 		$where = '';
@@ -1712,33 +1704,33 @@ function smf_delete_messages($personal_messages, $folder = null, $owner = null)
 	{
 		smf_db_query("
 			UPDATE {$smf_db_prefix}personal_messages
-			SET deletedBySender = 1
-			WHERE ID_MEMBER_FROM IN (" . implode(', ', $owner) . ")
-				AND deletedBySender = 0$where", __FILE__, __LINE__);
+			SET deleted_by_sender = 1
+			WHERE id_member_from IN (" . implode(', ', $owner) . ")
+				AND deleted_by_sender = 0$where", __FILE__, __LINE__);
 	}
 	if ($folder != 'outbox' || $folder === null)
 	{
 		// Calculate the number of messages each member's gonna lose...
 		$request = smf_db_query("
-			SELECT ID_MEMBER, COUNT(*) AS numDeletedMessages, IF(is_read & 1, 1, 0) AS is_read
+			SELECT id_member, COUNT(*) AS num_deleted_messages, IF(is_read & 1, 1, 0) AS is_read
 			FROM {$smf_db_prefix}pm_recipients
-			WHERE ID_MEMBER IN (" . implode(', ', $owner) . ")
+			WHERE id_member IN (" . implode(', ', $owner) . ")
 				AND deleted = 0$where
-			GROUP BY ID_MEMBER, is_read", __FILE__, __LINE__);
+			GROUP BY id_member, is_read", __FILE__, __LINE__);
 		// ...And update the statistics accordingly - now including unread messages!.
 		while ($row = mysql_fetch_assoc($request))
 		{
 			if ($row['is_read'])
-				smf_update_member_data($row['ID_MEMBER'], array('instantMessages' => $where == '' ? 0 : "instantMessages - $row[numDeletedMessages]"));
+				smf_update_member_data($row['id_member'], array('instant_messages' => $where == '' ? 0 : "instant_messages - $row[num_deleted_messages]"));
 			else
-				smf_update_member_data($row['ID_MEMBER'], array('instantMessages' => $where == '' ? 0 : "instantMessages - $row[numDeletedMessages]", 'unreadMessages' => $where == '' ? 0 : "unreadMessages - $row[numDeletedMessages]"));
+				smf_update_member_data($row['id_member'], array('instant_messages' => $where == '' ? 0 : "instant_messages - $row[num_deleted_messages]", 'unread_messages' => $where == '' ? 0 : "unread_messages - $row[num_deleted_messages]"));
 
 			// If this is the current member we need to make their message count correct.
-			if ($ID_MEMBER == $row['ID_MEMBER'])
+			if ($ID_MEMBER == $row['id_member'])
 			{
-				$smf_user_info['messages'] -= $row['numDeletedMessages'];
+				$smf_user_info['messages'] -= $row['num_deleted_messages'];
 				if (!($row['is_read']))
-					$smf_user_info['unread_messages'] -= $row['numDeletedMessages'];
+					$smf_user_info['unread_messages'] -= $row['num_deleted_messages'];
 			}
 		}
 		mysql_free_result($request);
@@ -1747,33 +1739,33 @@ function smf_delete_messages($personal_messages, $folder = null, $owner = null)
 		smf_db_query("
 			UPDATE {$smf_db_prefix}pm_recipients
 			SET deleted = 1
-			WHERE ID_MEMBER IN (" . implode(', ', $owner) . ")
+			WHERE id_member IN (" . implode(', ', $owner) . ")
 				AND deleted = 0$where", __FILE__, __LINE__);
 	}
 
 	// If sender and recipients all have deleted their message, it can be removed.
 	$request = smf_db_query("
-		SELECT pm.ID_PM, pmr.ID_PM AS recipient
+		SELECT pm.id_pm, pmr.id_pm AS recipient
 		FROM {$smf_db_prefix}personal_messages AS pm
-			LEFT JOIN {$smf_db_prefix}pm_recipients AS pmr ON (pmr.ID_PM = pm.ID_PM AND deleted = 0)
-		WHERE pm.deletedBySender = 1
-			" . str_replace('ID_PM', 'pm.ID_PM', $where) . "
+			LEFT JOIN {$smf_db_prefix}pm_recipients AS pmr ON (pmr.id_pm = pm.id_pm AND deleted = 0)
+		WHERE pm.deleted_by_sender = 1
+			" . str_replace('id_pm', 'pm.id_pm', $where) . "
 		HAVING recipient IS null", __FILE__, __LINE__);
 	$remove_pms = array();
 	while ($row = mysql_fetch_assoc($request))
-		$remove_pms[] = $row['ID_PM'];
+		$remove_pms[] = $row['id_pm'];
 	mysql_free_result($request);
 
 	if (!empty($remove_pms))
 	{
 		smf_db_query("
 			DELETE FROM {$smf_db_prefix}personal_messages
-			WHERE ID_PM IN (" . implode(', ', $remove_pms) . ")
+			WHERE id_pm IN (" . implode(', ', $remove_pms) . ")
 			LIMIT " . count($remove_pms), __FILE__, __LINE__);
 
 		smf_db_query("
 			DELETE FROM {$smf_db_prefix}pm_recipients
-			WHERE ID_PM IN (" . implode(', ', $remove_pms) . ')', __FILE__, __LINE__);
+			WHERE id_pm IN (" . implode(', ', $remove_pms) . ')', __FILE__, __LINE__);
 	}
 }
 
@@ -1818,41 +1810,41 @@ function smf_remove_attachments($condition, $query_type = '', $return_affected_m
 	// Get all the attachment names and ID_MSGs.
 	$request = smf_db_query("
 		SELECT
-			a.filename, a.attachmentType, a.ID_ATTACH, a.ID_MEMBER" . ($query_type == 'messages' ? ', m.ID_MSG' : ', a.ID_MSG') . ",
-			IFNULL(thumb.ID_ATTACH, 0) AS ID_THUMB, thumb.filename AS thumb_filename, thumb_parent.ID_ATTACH AS ID_PARENT
+			a.filename, a.attachment_type, a.id_attach, a.id_member" . ($query_type == 'messages' ? ', m.id_msg' : ', a.id_msg') . ",
+			IFNULL(thumb.id_attach, 0) AS id_thumb, thumb.filename AS thumb_filename, thumb_parent.id_attach AS id_parent
 		FROM ({$smf_db_prefix}attachments AS a" .($query_type == 'members' ? ", {$smf_db_prefix}members AS mem" : ($query_type == 'messages' ? ", {$smf_db_prefix}messages AS m" : '')) . ")
-			LEFT JOIN {$smf_db_prefix}attachments AS thumb ON (thumb.ID_ATTACH = a.ID_THUMB)
-			LEFT JOIN {$smf_db_prefix}attachments AS thumb_parent ON (a.attachmentType = 3 AND thumb_parent.ID_THUMB = a.ID_ATTACH)
+			LEFT JOIN {$smf_db_prefix}attachments AS thumb ON (thumb.id_attach = a.id_thumb)
+			LEFT JOIN {$smf_db_prefix}attachments AS thumb_parent ON (a.attachment_type = 3 AND thumb_parent.id_thumb = a.id_attach)
 		WHERE $condition" . ($query_type == 'messages' ? '
-			AND m.ID_MSG = a.ID_MSG' : '') . ($query_type == 'members' ? '
-			AND mem.ID_MEMBER = a.ID_MEMBER' : ''), __FILE__, __LINE__);
+			AND m.id_msg = a.id_msg' : '') . ($query_type == 'members' ? '
+			AND mem.id_member = a.id_member' : ''), __FILE__, __LINE__);
 	while ($row = mysql_fetch_assoc($request))
 	{
 		// Figure out the "encrypted" filename and unlink it ;).
-		if ($row['attachmentType'] == 1)
+		if ($row['attachment_type'] == 1)
 			@unlink($smf_settings['custom_avatar_dir'] . '/' . $row['filename']);
 		else
 		{
-			$filename = smf_get_attachment_filename($row['filename'], $row['ID_ATTACH']);
+			$filename = smf_get_attachment_filename($row['filename'], $row['id_attach']);
 			@unlink($filename);
 
 			// If this was a thumb, the parent attachment should know about it.
-			if (!empty($row['ID_PARENT']))
-				$parents[] = $row['ID_PARENT'];
+			if (!empty($row['id_parent']))
+				$parents[] = $row['id_parent'];
 
 			// If this attachments has a thumb, remove it as well.
-			if (!empty($row['ID_THUMB']) && $autoThumbRemoval)
+			if (!empty($row['id_thumb']) && $autoThumbRemoval)
 			{
-				$thumb_filename = smf_get_attachment_filename($row['thumb_filename'], $row['ID_THUMB']);
+				$thumb_filename = smf_get_attachment_filename($row['thumb_filename'], $row['id_thumb']);
 				@unlink($thumb_filename);
-				$attach[] = $row['ID_THUMB'];
+				$attach[] = $row['id_thumb'];
 			}
 		}
 
 		// Make a list.
-		if ($return_affected_messages && empty($row['attachmentType']))
-			$msgs[] = $row['ID_MSG'];
-		$attach[] = $row['ID_ATTACH'];
+		if ($return_affected_messages && empty($row['attachment_type']))
+			$msgs[] = $row['id_msg'];
+		$attach[] = $row['id_attach'];
 	}
 	mysql_free_result($request);
 
@@ -1861,14 +1853,14 @@ function smf_remove_attachments($condition, $query_type = '', $return_affected_m
 	if (!empty($parents))
 		smf_db_query("
 			UPDATE {$smf_db_prefix}attachments
-			SET ID_THUMB = 0
-			WHERE ID_ATTACH IN (" . implode(', ', $parents) . ")
+			SET id_thumb = 0
+			WHERE id_attach IN (" . implode(', ', $parents) . ")
 			LIMIT " . count($parents), __FILE__, __LINE__);
 
 	if (!empty($attach))
 		smf_db_query("
 			DELETE FROM {$smf_db_prefix}attachments
-			WHERE ID_ATTACH IN (" . implode(', ', $attach) . ")
+			WHERE id_attach IN (" . implode(', ', $attach) . ")
 			LIMIT " . count($attach), __FILE__, __LINE__);
 
 	if ($return_affected_messages)
@@ -1884,12 +1876,12 @@ function smf_remove_avatar($ID_MEMBER = 0)
 	  return false;
 
   if ($ID_MEMBER == 0) {
-    $ID_MEMBER = $smf_user_info['ID_MEMBER'];
+    $ID_MEMBER = $smf_user_info['id_member'];
     if ($ID_MEMBER == 0)
       return false;
   }
 	// Remove previous attachments this member might have had.
-	smf_remove_attachments('a.ID_MEMBER = ' . $ID_MEMBER);
+	smf_remove_attachments('a.id_member = ' . $ID_MEMBER);
 
   return true;
 }
@@ -1902,7 +1894,7 @@ function smf_update_avatar($destName)
   if (!$smf_connection)
 	  return false;
 
-  $ID_MEMBER = $smf_user_info['ID_MEMBER'];
+  $ID_MEMBER = $smf_user_info['id_member'];
   if ($ID_MEMBER == 0)
     return false;
 
@@ -1917,7 +1909,7 @@ function smf_update_avatar($destName)
 
   	smf_db_query("
   		INSERT INTO {$smf_db_prefix}attachments
-  			(ID_MEMBER, attachmentType, filename, size, width, height)
+				(id_member, attachment_type, filename, size, width, height)
   		VALUES ($ID_MEMBER, " . (empty($smf_settings['custom_avatar_enabled']) ? '0' : '1') . ", '$destName', " . filesize($destFileName) . ", " . (int) $width . ", " . (int) $height . ")", __FILE__, __LINE__);
   }
   return true;
@@ -1955,20 +1947,20 @@ function smf_log_online($action = null)
 	{
 		smf_db_query("
 			DELETE FROM {$smf_db_prefix}log_online
-			WHERE logTime < NOW() - INTERVAL $lastActive SECOND OR session = 'ip$_SERVER[REMOTE_ADDR]'", __FILE__, __LINE__);
+			WHERE log_time < NOW() - INTERVAL $lastActive SECOND OR session = 'ip$_SERVER[REMOTE_ADDR]'", __FILE__, __LINE__);
 		smf_db_query("
 			INSERT IGNORE INTO {$smf_db_prefix}log_online
-				(session, ID_MEMBER, ip, url)
+				(session, id_member, ip, url)
 			VALUES ('ip$_SERVER[REMOTE_ADDR]', 0, IFNULL(INET_ATON('$_SERVER[REMOTE_ADDR]'), 0), '$serialized')", __FILE__, __LINE__);
 	}
 	else
 	{
 		smf_db_query("
 			DELETE FROM {$smf_db_prefix}log_online
-			WHERE logTime < NOW() - INTERVAL $lastActive SECOND OR ID_MEMBER = $smf_user_info[id] OR session = '" . @session_id() . "'", __FILE__, __LINE__);
+			WHERE log_time < NOW() - INTERVAL $lastActive SECOND OR ID_MEMBER = $smf_user_info[id] OR session = '" . @session_id() . "'", __FILE__, __LINE__);
 		smf_db_query("
 			INSERT IGNORE INTO {$smf_db_prefix}log_online
-				(session, ID_MEMBER, ip, url)
+				(session, id_member, ip, url)
 			VALUES ('" . @session_id() . "', $smf_user_info[id], IFNULL(INET_ATON('$_SERVER[REMOTE_ADDR]'), 0), '$serialized')", __FILE__, __LINE__);
 	}
 }
@@ -1981,10 +1973,10 @@ function smf_is_online($user)
 		return false;
 
 	$result = smf_db_query("
-		SELECT lo.ID_MEMBER
+		SELECT lo.id_member
 		FROM {$smf_db_prefix}log_online AS lo" . (!is_integer($user) ? "
-			LEFT JOIN {$smf_db_prefix}members AS mem ON (mem.ID_MEMBER = lo.ID_MEMBER)" : '') . "
-		WHERE lo.ID_MEMBER = " . (int) $user . (!is_integer($user) ? " OR mem.memberName = '$user'" : '') . "
+			LEFT JOIN {$smf_db_prefix}members AS mem ON (mem.id_member = lo.id_member)" : '') . "
+		WHERE lo.id_member = " . (int) $user . (!is_integer($user) ? " OR mem.member_name = '$user'" : '') . "
 		LIMIT 1", __FILE__, __LINE__);
 	$return = mysql_num_rows($result) != 0;
 	mysql_free_result($result);
