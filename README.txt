@@ -1,7 +1,7 @@
 smf_api_2.php integration module
 ==============================================================================
 
-smf_api_2.php provides advanced integration with SMF: Simple Machines Forum
+smf_api_2.php provides advanced integration with SMF 2.0RC4: Simple Machines Forum
 http://www.simplemachines.org/.
 
 You can use smf_api_2.php with or without current smf_api.php.
@@ -9,8 +9,7 @@ You can use smf_api_2.php with or without current smf_api.php.
 Installation
 ------------------------------------------------------------------------------
 
-1) Download the smf_api_2 archive from http://www.simplemachines.org/ or
-   from http://vgb.org.ru
+1) Download the smf_api_2 archive from http://gitorious.org/smf_api_2
    Unpack smf_api_2 archive.
    See the "license.txt" file for details of the Simple Machines license.
 
@@ -30,7 +29,6 @@ Installation
     require_once (dirname(__FILE__) . '/smf_api_2.php');
 
 See smf_api_2_examples.php for usage.
-http://vgb.org.ru/forum/smf_api_2_examples.php
 
    Advanced 
 
@@ -44,17 +42,15 @@ http://vgb.org.ru/forum/smf_api_2_examples.php
 
 You may see advanced usage of smf_api_2.php function calls in Drupal smfforum.module code.
 
-To see how smf_api_2.php works in SMF 1.1 + Drupal 5 bridge you may visit 
-http://vgb.org.ru
-
 Install first locally and ensure that it works as you expect.
 
 Use at you risk on production site.
 
 ------------------------------------------------------------------------------
-Copyright 2006-2008 by:     Vadim G.B. (http://vgb.org.ru)
+Copyright 2006-2010 by:
+ Vadim G.B. (http://vgb.org.ru)
+ Christian López Espínola (http://universo.emergya.es/espacios/clopez)
 Some code from Simple Machines Forum. Distributed with permission.
-Modified  2006-2008 by:     Vadim G.B. (http://vgb.org.ru)
 ------------------------------------------------------------------------------
 
 
